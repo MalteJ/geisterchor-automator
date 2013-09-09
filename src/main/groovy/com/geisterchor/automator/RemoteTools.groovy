@@ -33,9 +33,15 @@ class RemoteTools {
         return [exitValue: proc.exitValue(), stdout: outstr, stderr: errstr]
     }
 
-    static def rsync(def config=[timeout:120], VirtualMachine vm, String source, String target) {
-        def command = ["rsync", "-avz", "--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", source, "${vm.sshUser}@${vm.ip}:${target}"]
-        return localExec(config,command)
+    static def rsync(HashMap config=[], VirtualMachine vm, String source, String target, def executer=this.localExec) {
+        if (! config.timeout)
+            config.timeout = 120
+        def command = ["rsync", "-avz"]
+        config.exclude?.collect { it ->
+            command += ["--exclude", it]
+        }
+        command += ["--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", source, "${vm.sshUser}@${vm.ip}:${target}"]
+        return executer(config,command)
     }
 
     static def ssh(String command, def config=[timeout:120]) {

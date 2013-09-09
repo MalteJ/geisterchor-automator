@@ -83,8 +83,8 @@ class VirtualMachine {
         return ret
     } 
 
-    def rsync(def source, def target) {
-        def ret = RemoteTools.rsync(this, source, target)
+    def rsync(def source, def target, HashMap config=[]) {
+        def ret = RemoteTools.rsync(this, source, target, config)
         if (!(ret.exitValue in [0])) {
             print ret.stdout
             println "rsync exited with invalid exit value: ${ret.exitValue}"
