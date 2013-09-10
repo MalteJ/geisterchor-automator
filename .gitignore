@@ -1,4 +1,5 @@
 gradle.properties
+.known_hosts
 *~
 .gradle
 gen
