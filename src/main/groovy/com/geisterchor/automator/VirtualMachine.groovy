@@ -83,12 +83,16 @@ class VirtualMachine {
         return ret
     } 
 
-    def rsync(def source, def target, HashMap config=[]) {
-        def ret = RemoteTools.rsync(config, this, source, target)
+    def rsync(def config=[]) {
+		assert config.source
+		assert config.dest
+		config.user = this.sshUser
+		config.host = this.ip
+        def ret = RemoteTools.rsync(config)
         if (!(ret.exitValue in [0])) {
             print ret.stdout
             println "rsync exited with invalid exit value: ${ret.exitValue}"
-            throw new AssertionError("rsync ${source} to ${this} ${target}' failed with exit code ${ret.exitValue}")
+            throw new AssertionError("rsync ${config.source} to ${this} ${config.dest}' failed with exit code ${ret.exitValue}")
         }
     }
 
@@ -97,6 +101,6 @@ class VirtualMachine {
     }
 
     def puppetApply(String manifest) {
-        ssh("puppet apply ${manifest}")
+        ssh("puppet apply ${manifest} --modulepath=/root/puppet-modules")
     }
 }

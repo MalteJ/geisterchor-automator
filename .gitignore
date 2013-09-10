@@ -9,3 +9,4 @@ build
 *.ipr
 *.iml
 *.iws
+/bin

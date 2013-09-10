@@ -21,6 +21,7 @@ class RemoteTools {
     static def localExec(def config=[timeout:120], def command) {
         //println command
         if (!config.timeout) config.timeout = 120
+		println command
         def proc = command.execute()
         def pos = new ByteArrayOutputStream()
         def per = new ByteArrayOutputStream()
@@ -33,14 +34,19 @@ class RemoteTools {
         return [exitValue: proc.exitValue(), stdout: outstr, stderr: errstr]
     }
 
-    static def rsync(HashMap config=[], VirtualMachine vm, String source, String target, def executer=this.localExec) {
+    static def rsync(def config=[], def executer=this.&localExec) {
+		assert config.source
+		assert config.dest
+		assert config.user
+		assert config.host
+		
         if (! config.timeout)
             config.timeout = 120
         def command = ["rsync", "-avz"]
         config.exclude?.collect { it ->
             command += ["--exclude", it]
         }
-        command += ["--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", source, "${vm.sshUser}@${vm.ip}:${target}"]
+        command += ["--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", config.source, "${config.user}@${config.host}:${config.dest}"]
         return executer(config,command)
     }
 

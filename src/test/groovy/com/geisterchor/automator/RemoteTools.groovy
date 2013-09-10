@@ -5,15 +5,12 @@ import org.junit.Test
 public class RemoteToolsTest {
     @Test
     public void testRsync() {
-        def config = [timeout:150]
-        def vm = new VirtualMachine(_ip:"127.0.0.1", sshUser:"root")
-        def source = "localDir"
-        def target = "targetDir"
+        def config = [timeout:150, source: "localDir", dest: "targetDir", host:"127.0.0.1", user: "root"]
 
         def rsyncCommand
         def rsyncConfig
 
-        RemoteTools.rsync(config, vm, source, target,
+        RemoteTools.rsync(config,
             { def conf, def cmd ->
                 rsyncCommand = cmd
                 rsyncConfig = conf
@@ -26,15 +23,12 @@ public class RemoteToolsTest {
 
     @Test
     public void testRsyncExclude() {
-        def config = [timeout:150, exclude: [".git",".hg"]]
-        def vm = new VirtualMachine(_ip:"127.0.0.1", sshUser:"root")
-        def source = "localDir"
-        def target = "targetDir"
+        def config = [timeout:150, source: "localDir", dest: "targetDir", host:"127.0.0.1", user: "root", exclude: [".git",".hg"]]
 
         def rsyncCommand
         def rsyncConfig
 
-        RemoteTools.rsync(config, vm, source, target,
+        RemoteTools.rsync(config,
             { def conf, def cmd ->
                 rsyncCommand = cmd
                 rsyncConfig = conf
