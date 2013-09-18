@@ -34,7 +34,33 @@ class VirtualMachine {
     Boolean persistent                              // if true vm will not be destroyed in the end
     Boolean destroyed                               // whether machine is destroyed yet
     
-    def hypervisor
+	def toDict() {
+		[
+			name: name,
+			templateVmx: templateVmx,
+			ip: ip,
+			vmx: vmx,
+			pool: pool,
+			cores: cores,
+			memory: memory,
+			//ethernetAdapters*.toDict()
+			sshUser: sshUser,
+			sshPort: sshPort,
+			created: created,
+			poweredon: poweredon,
+			persistent: persistent,
+			destroyed: destroyed
+		]
+	}
+	
+	String toJson() {
+		bldr = new groovy.json.JsonBuilder(this.toDict())
+		writer = new StringWriter()
+		bldr.writeTo(writer)
+		return writer.toString()
+	}
+	
+    private def hypervisor
     def setHypervisor(def hyp) {
         this.hypervisor = hyp
         hyp.vms.add(this)
@@ -62,9 +88,11 @@ class VirtualMachine {
         hypervisor.destroyVm(this)
     }
 
-    String _ip = null
+    private String _ip = null
     String getIp() {
-        if(!_ip)
+		if(!created)
+			return _ip
+        else if(!_ip)
             _ip = hypervisor.getVmIp(this)
         return _ip
     }
@@ -73,15 +101,20 @@ class VirtualMachine {
         this._ip = ip
     }
 
-    def ssh(def cmd, def config=[validExitValues:[0]]) {
+    def ssh(def config) {
+		assert config.cmd
         if (!config.validExitValues) config.validExitValues = [0]
-        def ret = RemoteTools.ssh(this, config, cmd)
+        def ret = RemoteTools.ssh(this, config, config.cmd)
         if (!(ret.exitValue in config.validExitValues)) {
             println "exited with invalid exit value: ${ret.exitValue}"
-            throw new AssertionError("ssh on VM ${this} '${cmd}' returned exit code ${ret.exitValue}")
+            throw new AssertionError("ssh on VM ${this} '${config.cmd}' returned exit code ${ret.exitValue}")
         }
         return ret
-    } 
+    }
+	
+	def ssh(String cmd) {
+		ssh([cmd: cmd])
+	}
 
     def rsync(def config=[]) {
 		assert config.source
@@ -99,8 +132,14 @@ class VirtualMachine {
     def puppetRun() {
         ssh("puppet agent -t")
     }
+	
+	def puppetApply(def conf) {
+		conf.cmd = "puppet apply --detailed-exitcodes ${conf.manifest}"
+		conf.validExitValues = [0,2]
+		ssh conf
+	}
 
     def puppetApply(String manifest) {
-        ssh("puppet apply ${manifest} --modulepath=/root/puppet-modules")
+		puppetApply manifest: manifest
     }
 }

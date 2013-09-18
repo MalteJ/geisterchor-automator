@@ -1,6 +1,6 @@
 def artifactId = "automator"
 def groupId = "com.geisterchor"
-def versionNumber = '0.1.12'
+def versionNumber = '0.1.28'
 
 apply plugin: 'groovy'
 apply plugin: 'maven'

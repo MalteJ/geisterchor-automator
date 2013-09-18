@@ -22,14 +22,42 @@ class vSphereHypervisor {
     String keyFile            // SSH private key file
 
     def vms = []
+	
+	def toDict() {
+		[
+			hostname: hostname,
+			username: username,
+			keyFile: keyFile,
+			vms: vms*.toDict(),	
+		]
+	}
+	
+	String toJson() {
+		def bldr = new groovy.json.JsonBuilder(this.toDict())
+		def writer = new StringWriter()
+		bldr.writeTo(writer)
+		return writer.toString()
+	}
 
     String toString() { hostname }
 
-    def ssh(def cmd, def assertExitValues = true) {
-        def ret = RemoteTools.ssh(cmd, [ip: hostname, user: username])
-        if (assertExitValues && ret.exitValue != 0) throw new RuntimeException("Non zero exit value!")
+    def ssh(def cnf) {
+		def config
+		if (cnf.getClass() == String)
+			config = [cmd: cnf]
+		else
+			config = cnf			
+			
+		config.assertExitValues = config.assertExitValues ?: true
+		config.ip = this.hostname
+        def ret = RemoteTools.ssh(config)
+        if (config.assertExitValues && ret.exitValue != 0) throw new RuntimeException("Non zero exit value!")
         return ret
      }
+	
+	def ssh(String cmd) {
+		ssh(cmd: cmd)
+	}
 
     def addVm(VirtualMachine vm) {
         vms.add(vm)
@@ -41,15 +69,16 @@ class vSphereHypervisor {
         def disks = ssh("grep vmdk ${vm.templateVmx}").stdout.readLines()*.split('"').collect{it[1]}
         println disks
         ssh "mkdir -p `dirname ${vm.vmx}`"
-        disks.collect { it -> ssh "vmkfstools -d thin -i `dirname ${vm.templateVmx}`/${it} `dirname ${vm.vmx}`/${it}" }
+        disks.collect { it -> ssh cmd: "vmkfstools -d thin -i `dirname ${vm.templateVmx}`/${it} `dirname ${vm.vmx}`/${it}", timeout: 360 }
 
         ssh "cp ${vm.templateVmx} ${vm.vmx}"
         ssh " vim-cmd solo/registervm ${vm.vmx} ${vm.name} ${vm.pool}"
+		vm.created = true
         return vm
     }
 
     def powerOnVm(VirtualMachine vm) { 
-        ssh "vim-cmd vmsvc/power.on ${vm.vmx} & sleep 1 ; vim-cmd vmsvc/message ${vm.vmx} _vmx1 2", false
+        ssh cmd: "vim-cmd vmsvc/power.on ${vm.vmx} & sleep 1 ; vim-cmd vmsvc/message ${vm.vmx} _vmx1 2", assertExitValues: false
     }
    
     def powerOffVm(VirtualMachine vm) {
@@ -64,6 +93,6 @@ class vSphereHypervisor {
         return vm
     }
     def getVmIp(VirtualMachine vm) {
-        ssh("vim-cmd vmsvc/get.summary ${vm.vmx} | grep ipAddress | grep -v \"unset\" | cut -d \\\" -f 2 | egrep '[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}'").stdout
+        ssh("vim-cmd vmsvc/get.summary ${vm.vmx} | grep ipAddress | grep -v \"unset\" | cut -d \\\" -f 2 | egrep '[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}'").stdout.replaceAll('\n', '')
     }
 }

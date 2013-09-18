@@ -22,7 +22,7 @@ public class RemoteToolsTest {
     }
 
     @Test
-    public void testRsyncExclude() {
+    public void testRsyncExcludeList() {
         def config = [timeout:150, source: "localDir", dest: "targetDir", host:"127.0.0.1", user: "root", exclude: [".git",".hg"]]
 
         def rsyncCommand
@@ -37,6 +37,24 @@ public class RemoteToolsTest {
 
         String cmdString = rsyncCommand.join(" ")
         assert cmdString == "rsync -avz --exclude .git --exclude .hg --delete -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts localDir root@127.0.0.1:targetDir"
+    }
+
+    @Test
+    public void testRsyncExcludeString() {
+        def config = [timeout:150, source: "localDir", dest: "targetDir", host:"127.0.0.1", user: "root", exclude: ".git"]
+
+        def rsyncCommand
+        def rsyncConfig
+
+        RemoteTools.rsync(config,
+            { def conf, def cmd ->
+                rsyncCommand = cmd
+                rsyncConfig = conf
+            }
+        )
+
+        String cmdString = rsyncCommand.join(" ")
+        assert cmdString == "rsync -avz --exclude .git --delete -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts localDir root@127.0.0.1:targetDir"
     }
 
 }

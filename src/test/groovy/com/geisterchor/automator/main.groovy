@@ -15,11 +15,14 @@ public class GroovyAutomatorTest {
              cores: 4,
              memory: 512,
              hypervisor: yoda,
-             _ip: "aembak-storage",
+			 created: true,
+             ip: "aembak-storage",
             )
         
-        
+        assert vm1.ip == "aembak-storage"
         vm1.ssh "whoami"
-        vm1.ssh("hostname", [timeout:600])
+        vm1.ssh cmd: "hostname", timeout:600
+		
+		println yoda.toJson()
     }
 }

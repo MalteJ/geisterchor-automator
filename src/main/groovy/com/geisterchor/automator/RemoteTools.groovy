@@ -21,7 +21,6 @@ class RemoteTools {
     static def localExec(def config=[timeout:120], def command) {
         //println command
         if (!config.timeout) config.timeout = 120
-		println command
         def proc = command.execute()
         def pos = new ByteArrayOutputStream()
         def per = new ByteArrayOutputStream()
@@ -43,18 +42,29 @@ class RemoteTools {
         if (! config.timeout)
             config.timeout = 120
         def command = ["rsync", "-avz"]
-        config.exclude?.collect { it ->
-            command += ["--exclude", it]
-        }
-        command += ["--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", config.source, "${config.user}@${config.host}:${config.dest}"]
-        return executer(config,command)
+		
+		if (config.exclude) {
+			if(config.exclude.getClass() == String) {
+				command += ["--exclude", config.exclude]
+			} else {
+		        config.exclude?.collect { it ->
+		            command += ["--exclude", it]
+		        }
+			}
+		}
+	    command += ["--delete", "-e", "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts", config.source, "${config.user}@${config.host}:${config.dest}"]
+        
+		return executer(config,command)
     }
 
-    static def ssh(String command, def config=[timeout:120]) {
+    static def ssh(def config) {
+		assert config.ip
+		assert config.cmd
         def sshHost = config.ip
         def sshUser = config.user ?: "root"
         def keyfile = config?.keyfile ?: "${System.getenv().HOME}/.ssh/id_rsa"
         def sshPort = config?.sshPort ?: 22
+		def command = config.cmd
 
         def cmd = "ssh -i ${keyfile} -o StrictHostKeyChecking=no -o UserKnownHostsFile=.known_hosts ${sshUser}@${sshHost} -p ${sshPort} ${command}"
         return localExec(config, cmd)
@@ -63,6 +73,7 @@ class RemoteTools {
     static def ssh(VirtualMachine vm, def config=[timeout:120], String command) {
         config.ip = vm.ip
         config.user = vm.sshUser
-        ssh(command, config)
+		config.cmd = command
+        ssh(config)
     }
 }
