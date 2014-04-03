@@ -69,7 +69,7 @@ class vSphereHypervisor {
         def disks = ssh("grep vmdk ${vm.templateVmx}").stdout.readLines()*.split('"').collect{it[1]}
         println disks
         ssh "mkdir -p `dirname ${vm.vmx}`"
-        disks.collect { it -> ssh cmd: "vmkfstools -d thin -i `dirname ${vm.templateVmx}`/${it} `dirname ${vm.vmx}`/${it}", timeout: 360 }
+        disks.collect { it -> ssh cmd: "vmkfstools -d thin -i `dirname ${vm.templateVmx}`/${it} `dirname ${vm.vmx}`/${it}", timeout: 600 }
 
         ssh "cp ${vm.templateVmx} ${vm.vmx}"
         ssh " vim-cmd solo/registervm ${vm.vmx} ${vm.name} ${vm.pool}"
